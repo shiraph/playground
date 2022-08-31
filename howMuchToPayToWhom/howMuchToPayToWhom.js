@@ -8,26 +8,21 @@ class User {
    *
    * @param {string} name
    * @param {number} payedPrice
+   * @param {number} avgPrice
    */
-  constructor(name, payedPrice) {
+  constructor(name, payedPrice, avgPrice) {
     this.name = name;
     this.payedPrice = payedPrice;
     this.actionDetail = "";
-  }
-
-  /**
-   * 合計値と個人の支払い状況から算出した値で初期化する
-   *
-   * @param {number} avgPrice
-   */
-  initialize(avgPrice) {
     this.defaultPriceToPay = avgPrice - this.payedPrice;
     this.priceToPay = this.defaultPriceToPay > 0 ? this.defaultPriceToPay : 0;
-    this.priceToReceive =
-      this.defaultPriceToPay < 0 ? Math.abs(this.defaultPriceToPay) : 0;
-    if (this.defaultPriceToPay > 0) this.action = ActionType.PAY;
-    else if (this.defaultPriceToPay < 0) this.action = ActionType.RECEIVE;
-    else this.action = ActionType.NO_ACTION;
+    this.priceToReceive = this.defaultPriceToPay < 0 ? Math.abs(this.defaultPriceToPay) : 0;
+    this.action =
+      this.defaultPriceToPay > 0
+        ? ActionType.PAY
+        : this.defaultPriceToPay < 0
+        ? ActionType.RECEIVE
+        : ActionType.NO_ACTION;
   }
 }
 
@@ -57,11 +52,7 @@ function howMuchToPayToWhom(names, prices, targetName) {
 
   // 支払額の少ない順に並び替える。
   let users = userNames
-    .map((name, i) => {
-      var user = new User(name, payedPrices[i]);
-      user.initialize(avgPrice);
-      return user;
-    })
+    .map((name, i) => new User(name, payedPrices[i], avgPrice))
     .sort((a, b) => a.priceToPay - b.priceToPay);
   let targetUser = settle(users).find((user) => user.name == targetName);
   return targetUser.actionDetail + targetUser.action;
@@ -97,7 +88,7 @@ function getReceiver(users) {
  */
 function settle(users) {
   let settledUsers = users;
-  // 授受アクションのテキストを生成する。
+  // 授受アクションのテキストを生成する。S
   for (let user of settledUsers) {
     // 支払額が0円以下の場合はスキップ
     if (user.priceToPay <= 0) continue;
@@ -107,21 +98,10 @@ function settle(users) {
       let receiver = getReceiver(settledUsers);
       if (!receiver) return;
 
-      let floatingPrice =
-        user.priceToPay < receiver.priceToReceive
-          ? user.priceToPay
-          : receiver.priceToReceive;
+      let floatingPrice = user.priceToPay < receiver.priceToReceive ? user.priceToPay : receiver.priceToReceive;
 
-      user.actionDetail += genText(
-        receiver.name,
-        floatingPrice,
-        ActionType.PAY
-      );
-      receiver.actionDetail += genText(
-        user.name,
-        floatingPrice,
-        ActionType.RECEIVE
-      );
+      user.actionDetail += genText(receiver.name, floatingPrice, ActionType.PAY);
+      receiver.actionDetail += genText(user.name, floatingPrice, ActionType.RECEIVE);
       user.priceToPay -= floatingPrice;
       receiver.priceToReceive -= floatingPrice;
     }
